@@ -58,6 +58,8 @@ package otlib.utils
         private var m_clientInfo:ClientInfo;
         private var m_total:uint;
         private var m_loaded:uint;
+        private var m_datIsEmperia:Boolean;
+        private var m_datContentVersion:uint;
 
         // --------------------------------------
         // Getters / Setters
@@ -98,10 +100,16 @@ package otlib.utils
             if (!spr.exists)
                 dispatchEvent(createErrorEvent(Resources.getString("sprFileNotFound")));
 
-            // Seachs for otfi file
-            var result:Vector.<File> = FileUtil.findExtension(dat, "otfi");
-            if (result.length != 0)
-                m_otfi = result[0];
+            // Search for Emperia .easset manifest first, then legacy .otfi
+            var eassetResult:Vector.<File> = FileUtil.findExtension(dat, "easset");
+            if (eassetResult.length != 0)
+                m_otfi = eassetResult[0];
+            else
+            {
+                var result:Vector.<File> = FileUtil.findExtension(dat, "otfi");
+                if (result.length != 0)
+                    m_otfi = result[0];
+            }
 
             m_dat = dat;
             m_spr = spr;
@@ -110,31 +118,17 @@ package otlib.utils
             m_clientInfo.features.extended = extended;
             m_total = 3;
 
-            loadNext();
+            doLoad();
         }
 
         // --------------------------------------
         // Private
         // --------------------------------------
 
-        private function loadNext():void
+        private function doLoad():void
         {
-            m_loaded++;
-
-            dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, m_loaded, m_total));
-
-            if (m_loaded == 1)
-                loadOTFI();
-            if (m_loaded == 2)
-                loadDat();
-            else if (m_loaded == 3)
-                loadSpr();
-            else
-                dispatchEvent(new Event(Event.COMPLETE));
-        }
-
-        private function loadOTFI():void
-        {
+            // Step 1: Load OTFI/easset manifest
+            dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 1, m_total));
             if (m_otfi)
             {
                 var otfi:OTFI = new OTFI();
@@ -150,25 +144,23 @@ package otlib.utils
                 }
             }
 
-            loadNext();
-        }
+            // Step 2: Read DAT header
+            dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 2, m_total));
+            var datStream:FileStream = new FileStream();
+            datStream.endian = Endian.LITTLE_ENDIAN;
+            datStream.open(m_dat, FileMode.READ);
+            readMetadaInfo(datStream);
+            datStream.close();
 
-        private function loadDat():void
-        {
-            var stream:FileStream = new FileStream();
-            stream.endian = Endian.LITTLE_ENDIAN;
-            stream.addEventListener(ProgressEvent.PROGRESS, metadataProgressHandler);
-            stream.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
-            stream.openAsync(m_dat, FileMode.READ);
-        }
+            // Step 3: Read SPR header + resolve version
+            dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 3, m_total));
+            var sprStream:FileStream = new FileStream();
+            sprStream.endian = Endian.LITTLE_ENDIAN;
+            sprStream.open(m_spr, FileMode.READ);
+            readSpritesInfo(sprStream);
+            sprStream.close();
 
-        private function loadSpr():void
-        {
-            var stream:FileStream = new FileStream();
-            stream.endian = Endian.LITTLE_ENDIAN;
-            stream.addEventListener(ProgressEvent.PROGRESS, spritesProgressHandler);
-            stream.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
-            stream.openAsync(m_spr, FileMode.READ);
+            dispatchEvent(new Event(Event.COMPLETE));
         }
 
         // --------------------------------------
@@ -177,22 +169,77 @@ package otlib.utils
 
         private function readMetadaInfo(stream:FileStream):void
         {
-            m_clientInfo.datSignature = stream.readUnsignedInt();
+            // Detect Emperia header
+            var magic1:uint = stream.readUnsignedInt();
+            var magic2:uint = stream.readUnsignedInt();
+
+            if (magic1 == 0x45504D45 && magic2 == 0x00414952)
+            {
+                // Emperia format: read content version, defer signature resolution
+                m_datIsEmperia = true;
+                stream.position = 0x0B;
+                m_datContentVersion = stream.readUnsignedInt();
+                m_clientInfo.datSignature = 0; // placeholder, filled after version lookup
+                stream.position = 20; // skip to payload
+            }
+            else
+            {
+                // Legacy format: first uint was the signature
+                m_datIsEmperia = false;
+                stream.position = 4;
+                m_clientInfo.datSignature = magic1;
+            }
+
             m_clientInfo.maxItemId = stream.readUnsignedShort();
             m_clientInfo.maxOutfitId = stream.readUnsignedShort();
             m_clientInfo.maxEffectId = stream.readUnsignedShort();
             m_clientInfo.maxMissileId = stream.readUnsignedShort();
-
-            loadNext();
         }
 
         private function readSpritesInfo(stream:FileStream):void
         {
-            m_clientInfo.sprSignature = stream.readUnsignedInt();
+            // Detect Emperia header
+            var sprMagic1:uint = stream.readUnsignedInt();
+            var sprMagic2:uint = stream.readUnsignedInt();
+            var sprIsEmperia:Boolean = (sprMagic1 == 0x45504D45 && sprMagic2 == 0x00414952);
 
-            var version:Version = VersionStorage.getInstance().getBySignatures(
-                    m_clientInfo.datSignature,
-                    m_clientInfo.sprSignature);
+            var sprContentVersion:uint;
+            if (sprIsEmperia)
+            {
+                // Read flags from header (offset 15) to set features
+                stream.position = 15;
+                var sprFlags:uint = stream.readUnsignedByte();
+                m_clientInfo.features.extended = (sprFlags & 0x01) != 0;
+                m_clientInfo.features.transparency = (sprFlags & 0x02) != 0;
+                m_clientInfo.features.frameGroups = (sprFlags & 0x04) != 0;
+                m_clientInfo.features.improvedAnimations = (sprFlags & 0x08) != 0;
+
+                stream.position = 0x0B;
+                sprContentVersion = stream.readUnsignedInt();
+                m_clientInfo.sprSignature = 0; // placeholder
+                stream.position = 20; // skip to payload
+            }
+            else
+            {
+                stream.position = 4;
+                m_clientInfo.sprSignature = sprMagic1;
+            }
+
+            var version:Version;
+            if (m_datIsEmperia || sprIsEmperia)
+            {
+                // Emperia format: look up version by content version value
+                var contentVer:uint = m_datIsEmperia ? m_datContentVersion : sprContentVersion;
+                var versions:Vector.<Version> = VersionStorage.getInstance().getByValue(contentVer);
+                if (versions.length > 0)
+                    version = versions[0];
+            }
+            else
+            {
+                version = VersionStorage.getInstance().getBySignatures(
+                        m_clientInfo.datSignature,
+                        m_clientInfo.sprSignature);
+            }
 
             if (!version)
             {
@@ -201,11 +248,14 @@ package otlib.utils
                 m_clientInfo.maxEffectId = 0;
                 m_clientInfo.maxMissileId = 0;
                 m_clientInfo.maxSpriteId = 0;
-
-                dispatchEvent(new Event(Event.COMPLETE));
-                dispatchEvent(createErrorEvent(Resources.getString("unsupportedVersion")));
                 return;
             }
+
+            // Backfill real signatures from the resolved version so downstream code works
+            if (m_datIsEmperia)
+                m_clientInfo.datSignature = version.datSignature;
+            if (sprIsEmperia)
+                m_clientInfo.sprSignature = version.sprSignature;
 
             m_clientInfo.clientVersion = version.value;
             m_clientInfo.clientVersionStr = version.valueStr;
@@ -217,37 +267,8 @@ package otlib.utils
             }
             else
                 m_clientInfo.maxSpriteId = stream.readUnsignedShort();
-
-            loadNext();
         }
 
-        private function metadataProgressHandler(event:ProgressEvent):void
-        {
-            var stream:FileStream = event.target as FileStream;
-            if (stream.bytesAvailable >= 12)
-                readMetadaInfo(stream);
-
-            stream.removeEventListener(ProgressEvent.PROGRESS, metadataProgressHandler);
-            stream.removeEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
-            stream.close();
-        }
-
-        private function spritesProgressHandler(event:ProgressEvent):void
-        {
-            var stream:FileStream = event.target as FileStream;
-            if (stream.bytesAvailable >= 8)
-                readSpritesInfo(stream);
-
-            stream.removeEventListener(ProgressEvent.PROGRESS, spritesProgressHandler);
-            stream.removeEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
-            stream.close();
-        }
-
-        private function ioErrorHandler(event:IOErrorEvent):void
-        {
-            m_clientInfo = null;
-            dispatchEvent(createErrorEvent(event.text, event.errorID));
-        }
 
         private function createErrorEvent(text:String, id:uint = 0):ErrorEvent
         {

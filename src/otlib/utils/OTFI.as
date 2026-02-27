@@ -23,6 +23,8 @@
 package otlib.utils
 {
     import flash.filesystem.File;
+    import flash.filesystem.FileMode;
+    import flash.filesystem.FileStream;
 
     import nail.errors.NullArgumentError;
 
@@ -109,7 +111,14 @@ package otlib.utils
             if (!file)
                 throw new NullArgumentError("file");
 
-            if (!file.exists || file.extension != "otfi")
+            if (!file.exists)
+                return false;
+
+            // Handle Emperia .easset JSON manifest
+            if (file.extension == "easset")
+                return loadEasset(file);
+
+            if (file.extension != "otfi")
                 return false;
 
             var doc:OTMLDocument = new OTMLDocument();
@@ -136,6 +145,51 @@ package otlib.utils
                 spriteDataSize = node.readAt("sprite-data-size", uint);
 
             return true;
+        }
+
+        private function loadEasset(file:File):Boolean
+        {
+            try
+            {
+                var stream:FileStream = new FileStream();
+                stream.open(file, FileMode.READ);
+                var content:String = stream.readUTFBytes(stream.bytesAvailable);
+                stream.close();
+
+                var json:Object = JSON.parse(content);
+                if (!json)
+                    return false;
+
+                if (!features)
+                    features = new ClientFeatures();
+
+                var feat:Object = json["features"];
+                if (feat)
+                {
+                    features.extended = feat["extended"] == true;
+                    features.transparency = feat["transparency"] == true;
+                    features.improvedAnimations = feat["frameDurations"] == true;
+                    features.frameGroups = feat["frameGroups"] == true;
+
+                    if (feat["spriteSize"] is Number)
+                        spriteSize = uint(feat["spriteSize"]);
+                    if (feat["spriteDataSize"] is Number)
+                        spriteDataSize = uint(feat["spriteDataSize"]);
+                }
+
+                var files:Object = json["files"];
+                if (files)
+                {
+                    metadataFile = files["objects"] as String;
+                    spritesFile = files["sprites"] as String;
+                }
+
+                return true;
+            }
+            catch (error:Error)
+            {
+            }
+            return false;
         }
 
         public function save(file:File):Boolean

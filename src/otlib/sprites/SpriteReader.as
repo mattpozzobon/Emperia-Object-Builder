@@ -35,6 +35,7 @@ package otlib.sprites
         private var m_extended:Boolean;
         private var m_transparency:Boolean;
         private var m_headerSize:uint;
+        private var m_payloadOffset:uint; // 0 for legacy, 16 for Emperia (20 - 4 legacy sig)
 
         // --------------------------------------------------------------------------
         // CONSTRUCTOR
@@ -45,6 +46,7 @@ package otlib.sprites
             m_extended = features ? features.extended : false;
             m_transparency = features ? features.transparency : false;
             m_headerSize = m_extended ? SpriteFileSize.HEADER_U32 : SpriteFileSize.HEADER_U16;
+            m_payloadOffset = 0;
 
             endian = Endian.LITTLE_ENDIAN;
         }
@@ -59,13 +61,42 @@ package otlib.sprites
 
         public function readSignature():uint
         {
-            position = SpriteFilePosition.SIGNATURE;
-            return readUnsignedInt();
+            // Detect Emperia header: "EMPERIA\0" = 0x45 0x4D 0x50 0x45 0x52 0x49 0x41 0x00
+            position = 0;
+            var magic1:uint = readUnsignedInt();
+            var magic2:uint = readUnsignedInt();
+
+            if (magic1 == 0x45504D45 && magic2 == 0x00414952)
+            {
+                // Emperia format: header is 20 bytes, payload starts at offset 20
+                m_payloadOffset = 16; // 20 - 4 (legacy sig size)
+
+                // Read flags from header (offset 15, 1 byte) to override features
+                position = 15;
+                var flags:uint = readUnsignedByte();
+                m_extended = (flags & 0x01) != 0;
+                m_transparency = (flags & 0x02) != 0;
+
+                // Read content version from header (offset 0x0B, 4 bytes LE)
+                position = 0x0B;
+                var contentVersion:uint = readUnsignedInt();
+
+                // Recalculate header size with offset
+                m_headerSize = m_payloadOffset + (m_extended ? SpriteFileSize.HEADER_U32 : SpriteFileSize.HEADER_U16);
+                return contentVersion;
+            }
+            else
+            {
+                // Legacy format: first 4 bytes are the signature
+                m_payloadOffset = 0;
+                position = SpriteFilePosition.SIGNATURE;
+                return magic1;
+            }
         }
 
         public function readSpriteCount():uint
         {
-            position = SpriteFilePosition.LENGTH;
+            position = m_payloadOffset + SpriteFilePosition.LENGTH;
             return m_extended ? readUnsignedInt() : readUnsignedShort();
         }
 

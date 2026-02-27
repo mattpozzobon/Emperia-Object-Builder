@@ -38,6 +38,7 @@ package otlib.things
     {
         private var _settings:ObjectBuilderSettings;
         private var _features:ClientFeatures;
+        protected var _payloadOffset:uint = 0; // 0 for legacy, 16 for Emperia (20 header - 4 legacy sig)
 
         // --------------------------------------------------------------------------
         // CONSTRUCTOR
@@ -77,31 +78,52 @@ package otlib.things
 
         public function readSignature():uint
         {
-            position = MetadataFilePosition.SIGNATURE;
-            return readUnsignedInt();
+            // Detect Emperia header: "EMPERIA\0"
+            position = 0;
+            var magic1:uint = readUnsignedInt();
+            var magic2:uint = readUnsignedInt();
+
+            if (magic1 == 0x45504D45 && magic2 == 0x00414952)
+            {
+                // Emperia format: 20-byte header, payload starts at offset 20
+                _payloadOffset = 16; // 20 - 4 (legacy sig size)
+                // Read content version from header (offset 0x0B)
+                position = 0x0B;
+                var contentVersion:uint = readUnsignedInt();
+                // Seek to start of payload data (after 20-byte header, past the "signature" equivalent)
+                position = 20;
+                return contentVersion;
+            }
+            else
+            {
+                // Legacy format
+                _payloadOffset = 0;
+                position = MetadataFilePosition.SIGNATURE;
+                return magic1;
+            }
         }
 
         public function readItemsCount():uint
         {
-            position = MetadataFilePosition.ITEMS_COUNT;
+            position = _payloadOffset + MetadataFilePosition.ITEMS_COUNT;
             return readUnsignedShort();
         }
 
         public function readOutfitsCount():uint
         {
-            position = MetadataFilePosition.OUTFITS_COUNT;
+            position = _payloadOffset + MetadataFilePosition.OUTFITS_COUNT;
             return readUnsignedShort();
         }
 
         public function readEffectsCount():uint
         {
-            position = MetadataFilePosition.EFFECTS_COUNT;
+            position = _payloadOffset + MetadataFilePosition.EFFECTS_COUNT;
             return readUnsignedShort();
         }
 
         public function readMissilesCount():uint
         {
-            position = MetadataFilePosition.MISSILES_COUNT;
+            position = _payloadOffset + MetadataFilePosition.MISSILES_COUNT;
             return readUnsignedShort();
         }
 

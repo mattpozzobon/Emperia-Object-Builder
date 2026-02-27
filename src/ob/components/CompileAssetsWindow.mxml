@@ -312,8 +312,8 @@ THE SOFTWARE.
             
                 if (directory && !isNullOrEmpty(m_filesName))
                 {
-                    m_datFile = directory.resolvePath(m_filesName + ".dat");
-                    m_sprFile = directory.resolvePath(m_filesName + ".spr");
+                    m_datFile = directory.resolvePath(m_filesName + ".eobj");
+                    m_sprFile = directory.resolvePath(m_filesName + ".espr");
                 }
             
                 updateProperties();

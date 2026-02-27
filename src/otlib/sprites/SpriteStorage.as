@@ -612,19 +612,44 @@ package otlib.sprites
                 stream = new FileStream();
                 stream.open(tmpFile, FileMode.WRITE);
                 stream.endian = Endian.LITTLE_ENDIAN;
-                stream.writeUnsignedInt(version.sprSignature); // Write spr signature.
 
-                // Write sprites count.
+                // Write 20-byte Emperia header
+                // Magic: "EMPERIA\0" (8 bytes)
+                stream.writeByte(0x45); // E
+                stream.writeByte(0x4D); // M
+                stream.writeByte(0x50); // P
+                stream.writeByte(0x45); // E
+                stream.writeByte(0x52); // R
+                stream.writeByte(0x49); // I
+                stream.writeByte(0x41); // A
+                stream.writeByte(0x00); // \0
+                // FileType: 0x01 = sprite data (1 byte)
+                stream.writeByte(0x01);
+                // FormatVersion: 1 (2 bytes LE)
+                stream.writeShort(1);
+                // ContentVersion: game version (4 bytes LE)
+                stream.writeUnsignedInt(version.value);
+                // Flags: extended|transparency|frameGroups|frameDurations (1 byte)
+                var flags:uint = 0;
+                if (extended) flags |= 0x01;
+                if (transparency) flags |= 0x02;
+                if (compileFeatures.frameGroups) flags |= 0x04;
+                if (compileFeatures.improvedAnimations) flags |= 0x08;
+                stream.writeByte(flags);
+                // Reserved (4 bytes)
+                stream.writeUnsignedInt(0);
+
+                // Write sprites count (payload begins here at offset 20).
                 if (extended || version.value >= 960)
                 {
                     count = _spritesCount;
-                    headSize = SpriteFileSize.HEADER_U32;
+                    headSize = 20 + 4; // Emperia header + U32 count
                     stream.writeUnsignedInt(count);
                 }
                 else
                 {
                     count = _spritesCount >= 0xFFFF ? 0xFFFE : _spritesCount;
-                    headSize = SpriteFileSize.HEADER_U16;
+                    headSize = 20 + 2; // Emperia header + U16 count
                     stream.writeShort(count);
                 }
 
@@ -934,6 +959,10 @@ package otlib.sprites
             _reader = new SpriteReader(_currentFeatures);
             _reader.open(file, FileMode.READ);
             _signature = _reader.readSignature();
+            // Emperia files return contentVersion from readSignature(), not the legacy hex sig.
+            // Normalize to legacy signature so downstream display/lookup works.
+            if (_signature != version.sprSignature)
+                _signature = version.sprSignature;
             _spritesCount = _reader.readSpriteCount();
             _headerSize = _currentFeatures.extended ? SpriteFileSize.HEADER_U32 : SpriteFileSize.HEADER_U16;
             _blankSprite = new Sprite(0, _currentFeatures.transparency);

@@ -188,6 +188,11 @@ package otlib.things
                 reader.features = _currentFeatures;
                 readBytes(reader);
                 reader.close();
+
+                // Emperia files return contentVersion from readSignature(), not the legacy hex sig.
+                // Normalize to legacy signature so downstream display/lookup works.
+                if (_signature != version.datSignature)
+                    _signature = version.datSignature;
             }
             catch (error:Error)
             {
@@ -410,7 +415,32 @@ package otlib.things
 
                 writer.features = compileFeatures;
                 writer.open(tmpFile, FileMode.WRITE);
-                writer.writeUnsignedInt(version.datSignature); // Write sprite signature
+
+                // Write 20-byte Emperia header
+                // Magic: "EMPERIA\0" (8 bytes)
+                writer.writeByte(0x45); // E
+                writer.writeByte(0x4D); // M
+                writer.writeByte(0x50); // P
+                writer.writeByte(0x45); // E
+                writer.writeByte(0x52); // R
+                writer.writeByte(0x49); // I
+                writer.writeByte(0x41); // A
+                writer.writeByte(0x00); // \0
+                // FileType: 0x02 = object definitions (1 byte)
+                writer.writeByte(0x02);
+                // FormatVersion: 1 (2 bytes LE)
+                writer.writeShort(1);
+                // ContentVersion: game version (4 bytes LE)
+                writer.writeUnsignedInt(version.value);
+                // Flags (1 byte)
+                var headerFlags:uint = 0;
+                if (compileFeatures.extended) headerFlags |= 0x01;
+                if (compileFeatures.transparency) headerFlags |= 0x02;
+                if (compileFeatures.frameGroups) headerFlags |= 0x04;
+                if (compileFeatures.improvedAnimations) headerFlags |= 0x08;
+                writer.writeByte(headerFlags);
+                // Reserved (4 bytes)
+                writer.writeUnsignedInt(0);
 
                 writer.writeShort(_itemsCount); // Write items count
                 writer.writeShort(_outfitsCount); // Write outfits count

@@ -31,6 +31,8 @@ package
     import flash.events.ErrorEvent;
     import flash.events.Event;
     import flash.filesystem.File;
+    import flash.filesystem.FileMode;
+    import flash.filesystem.FileStream;
     import flash.geom.Rectangle;
     import flash.utils.ByteArray;
     import flash.utils.Dictionary;
@@ -717,11 +719,30 @@ package
                 }
             }
 
-            // Save .otfi file
+            // Save .easset manifest (Emperia format) alongside the compiled files
             var dir:File = FileUtil.getDirectory(dat);
-            var otfiFile:File = dir.resolvePath(FileUtil.getName(dat) + ".otfi");
-            var otfi:OTFI = new OTFI(features, dat.name, spr.name, SpriteExtent.DEFAULT_SIZE, SpriteExtent.DEFAULT_DATA_SIZE);
-            otfi.save(otfiFile);
+            var eassetFile:File = dir.resolvePath("emperia.easset");
+            var manifest:Object = {
+                "format": "emperia-asset-manifest",
+                "version": 1,
+                "contentVersion": version.value,
+                "files": {
+                    "objects": dat.name,
+                    "sprites": spr.name
+                },
+                "features": {
+                    "extended": features.extended,
+                    "transparency": features.transparency,
+                    "frameDurations": features.improvedAnimations,
+                    "frameGroups": features.frameGroups,
+                    "spriteSize": SpriteExtent.DEFAULT_SIZE,
+                    "spriteDataSize": SpriteExtent.DEFAULT_DATA_SIZE
+                }
+            };
+            var eassetStream:FileStream = new FileStream();
+            eassetStream.open(eassetFile, FileMode.WRITE);
+            eassetStream.writeUTFBytes(JSON.stringify(manifest, null, 2));
+            eassetStream.close();
 
             // Complete
             sendCommand(new ProgressCommand(ProgressBarID.METADATA, 3, 3, "Saving complete"));
