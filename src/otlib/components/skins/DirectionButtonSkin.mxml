@@ -51,15 +51,15 @@ THE SOFTWARE.
     <s:Rect left="1" right="1" top="1" bottom="1">
         <s:fill>
             <s:LinearGradient rotation="90">
-                <s:GradientEntry color="0x626262"
-                    color.over="0x6F6F6F"
-                    color.down="0x414141"
-                    color.selectedStates="0x353535"
+                <s:GradientEntry color="0x1a1a1a"
+                    color.over="0x2a2a2a"
+                    color.down="0x0a0a0a"
+                    color.selectedStates="0x111111"
                     alpha.up="0"/>
-                <s:GradientEntry color="0x535353"
-                    color.over="0x606060"
-                    color.down="0x414141"
-                    color.selectedStates="0x353535"
+                <s:GradientEntry color="0x111111"
+                    color.over="0x1a1a1a"
+                    color.down="0x0a0a0a"
+                    color.selectedStates="0x111111"
                     alpha.up="0"/>
             </s:LinearGradient>
         </s:fill>

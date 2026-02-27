@@ -195,7 +195,7 @@ THE SOFTWARE.
         left="0" right="0" top="0" bottom="24"
         fontSize="11"
         borderColor="0x272727"
-        contentBackgroundColor="0x494949"
+        contentBackgroundColor="0x000000"
         visible="{_expanded}"
         allowMultipleSelection="true"
         keyDown="logList_keyDownHandler(event)">

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <application xmlns="http://ns.adobe.com/air/application/51.2">
 
-	<id>com.mignari.ObjectBuilder</id>
-	<filename>ObjectBuilder</filename>
-	<name>Object Builder</name>
-	<versionNumber>0.5.7</versionNumber>
-	<versionLabel>0.5.7</versionLabel>
+	<id>com.emperia.ObjectBuilder</id>
+	<filename>EmperiaObjectBuilder</filename>
+	<name>Emperia Object Builder</name>
+	<versionNumber>1.0.0</versionNumber>
+	<versionLabel>1.0.0</versionLabel>
 	<copyright>
-		<![CDATA[Copyright (c) 2014-2023 <a href="https://github.com/Mignari/ObjectBuilder/graphs/contributors">Contributors</a>]]>
+		<![CDATA[Copyright (c) 2024-2026 Matheus Pozzobon. Based on Object Builder by <a href="https://github.com/Mignari/ObjectBuilder/graphs/contributors">Contributors</a>]]>
 	</copyright>
 
 	<initialWindow>

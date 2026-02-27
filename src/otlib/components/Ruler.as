@@ -104,11 +104,11 @@ package otlib.components
 
             graphics.clear();
             graphics.lineStyle(1, 0x272727);
-            graphics.beginFill(0x353535);
+            graphics.beginFill(0x111111);
             graphics.drawRect(0, 0, unscaledWidth, 15);
             graphics.endFill();
 
-            graphics.beginFill(0x353535);
+            graphics.beginFill(0x111111);
             graphics.drawRect(0, 0, 15, unscaledHeight);
             graphics.endFill();
 

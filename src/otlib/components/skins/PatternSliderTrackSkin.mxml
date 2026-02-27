@@ -43,7 +43,7 @@ THE SOFTWARE.
     <!-- fill -->
     <s:Rect left="1" right="1" top="1" bottom="1">
         <s:fill>
-            <s:SolidColor color="0x353535"/>
+            <s:SolidColor color="0x111111"/>
         </s:fill>
     </s:Rect>
 

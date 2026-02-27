@@ -65,11 +65,11 @@ package otlib.components.renders
         private var _imageBackground:Rect;
 
         // Colors
-        private static const COLOR_NORMAL:uint = 0x535353;
+        private static const COLOR_NORMAL:uint = 0x111111;
         private static const COLOR_HOVERED:uint = 0x3385B2;
         private static const COLOR_SELECTED:uint = 0x156692;
         private static const COLOR_BORDER:uint = 0x272727;
-        private static const COLOR_IMAGE_BG:uint = 0x636363;
+        private static const COLOR_IMAGE_BG:uint = 0x1a1a1a;
 
         // --------------------------------------------------------------------------
         // CONSTRUCTOR

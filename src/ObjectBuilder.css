@@ -23,21 +23,22 @@
 @namespace s "library://ns.adobe.com/flex/spark";
 @namespace mx "library://ns.adobe.com/flex/mx";
 @namespace mg "library://ns.mignari.com/mg";
+@namespace nail "library://ns.nail.com/naillib";
 @namespace otlib "otlib.components.*";
 @namespace ob "ob.components.*";
 
 global {
-    chromeColor: #444444;
+    chromeColor: #000000;
     rollOverColor: #3385b2;
     selectionColor: #156692;
     color: #CBCBCB;
-    contentBackgroundColor: #444444;
+    contentBackgroundColor: #000000;
     focusedTextSelectionColor: #272727;
     symbolColor: #DFDFDF;
     fontFamily: verdana;
     modal-transparency-blur: 0;
     modal-transparency: 0.3;
-    modalTransparencyColor: #656565;
+    modalTransparencyColor: #1a1a1a;
 }
 
 /*
@@ -84,12 +85,12 @@ mx|ToolTip {
 */
 
 s|Application {
-    backgroundColor: #212F43;
+    backgroundColor: #000000;
     skinClass: ClassReference("spark.skins.spark.ApplicationSkin");
 }
 
 s|BorderContainer {
-    backgroundColor: #212F43;
+    backgroundColor: #000000;
     borderStyle: "solid";
     cornerRadius: 0;
     skinClass: ClassReference("spark.skins.spark.BorderContainerSkin");
@@ -167,17 +168,17 @@ s|VSlider {
 */
 
 mg|GroupBox {
-    backgroundColor: #494949;
+    backgroundColor: #000000;
     borderColor: #272727;
-    shadowColor: #535353;
-    skinClass: ClassReference("com.mignari.skins.GroupBoxSkin");
+    shadowColor: #111111;
+    skinClass: ClassReference("ob.skins.DarkGroupBoxSkin");
 }
 
 mg|GroupCheckBox {
-    backgroundColor: #494949;
+    backgroundColor: #000000;
     borderColor: #272727;
-    shadowColor: #535353;
-    skinClass: ClassReference("com.mignari.skins.GroupSwitchSkin");
+    shadowColor: #111111;
+    skinClass: ClassReference("ob.skins.DarkGroupBoxSkin");
 }
 
 mg|ProgressBar {
@@ -186,6 +187,19 @@ mg|ProgressBar {
 
 mg|ProgressWidget {
     skinClass: ClassReference("com.mignari.skins.ProgressWidgetSkin");
+}
+
+nail|GroupBox {
+    backgroundColor: #000000;
+    borderColor: #272727;
+    shadowColor: #111111;
+    skinClass: ClassReference("ob.skins.DarkGroupBoxSkin");
+}
+
+nail|TabNavigator {
+    backgroundColor: #000000;
+    contentBackgroundColor: #000000;
+    chromeColor: #000000;
 }
 
 /*

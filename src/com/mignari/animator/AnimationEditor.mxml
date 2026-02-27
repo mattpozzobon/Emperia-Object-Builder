@@ -32,7 +32,7 @@ THE SOFTWARE.
     minWidth="800"
     minHeight="600"
     fontSize="11"
-    backgroundColor="0x494949"
+    backgroundColor="0x000000"
     showStatusBar="false"
     title="@Resource(key='animationEditor', bundle='strings')"
     creationComplete="creationCompleteHandler(event)"
@@ -943,7 +943,8 @@ THE SOFTWARE.
             maxWidth="300"
             width="300"
             height="100%"
-            skinClass="nail.components.skins.BorderContainerSkin">
+            backgroundColor="0x000000"
+            borderColor="0x272727">
             <s:layout>
                 <s:VerticalLayout paddingLeft="5"
                     paddingRight="5"
@@ -1071,14 +1072,15 @@ THE SOFTWARE.
             gap="0">
             <s:BorderContainer width="100%"
                 height="100%"
-                skinClass="nail.components.skins.BorderContainerSkin">
+                backgroundColor="0x000000"
+                borderColor="0x272727">
 
                 <!-- background fill -->
                 <otlib:CheckerBoard left="0"
                     right="0"
                     top="0"
                     bottom="0"
-                    cellColors="{[0x636363, 0x535353]}"
+                    cellColors="{[0x1a1a1a, 0x111111]}"
                     mouseChildren="false"
                     mouseEnabled="false"/>
 
@@ -1087,7 +1089,7 @@ THE SOFTWARE.
                     height="100%"
                     mouseChildren="false"
                     mouseEnabled="false"
-                    lineColor="0x636363"/>
+                    lineColor="0x1a1a1a"/>
 
                 <s:Scroller left="15"
                     right="0"
@@ -1117,14 +1119,15 @@ THE SOFTWARE.
 
             <s:BorderContainer width="100%"
                 height="155"
-                skinClass="nail.components.skins.BorderContainerSkin">
+                backgroundColor="0x000000"
+                borderColor="0x272727">
                 <s:layout>
                     <s:VerticalLayout gap="0"/>
                 </s:layout>
                 <animator:FrameList id="framesList"
                     width="100%"
                     height="100%"
-                    contentBackgroundColor="0x494949"
+                    contentBackgroundColor="0x000000"
                     borderVisible="false"
                     requireSelection="true"
                     allowMultipleSelection="true"

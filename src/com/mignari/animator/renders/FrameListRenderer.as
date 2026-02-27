@@ -63,7 +63,7 @@ package com.mignari.animator.renders
 
         private var _hovered:Boolean = false;
 
-        private static const COLOR_NORMAL:uint = 0x535353;
+        private static const COLOR_NORMAL:uint = 0x111111;
         private static const COLOR_HOVERED:uint = 0x3385B2; // Added hover color from ThingListRenderer
         private static const COLOR_SELECTED:uint = 0x294867;
 
@@ -93,7 +93,7 @@ package com.mignari.animator.renders
             // But wait, the image is in a VGroup with padding.
 
             _bgRect = new Rect();
-            _bgRect.fill = new SolidColor(0x636363);
+            _bgRect.fill = new SolidColor(0x1a1a1a);
             _bgRect.stroke = new SolidColorStroke(0x707070);
             addElement(_bgRect);
 

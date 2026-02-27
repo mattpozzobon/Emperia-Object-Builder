@@ -56,11 +56,11 @@ package objectview.renders
 
         private var _hovered:Boolean = false;
 
-        private static const COLOR_NORMAL:uint = 0x535353;
+        private static const COLOR_NORMAL:uint = 0x111111;
         private static const COLOR_HOVERED:uint = 0x3385B2;
         private static const COLOR_SELECTED:uint = 0x156692;
 
-        private static const COLOR_IMAGE_BG:uint = 0x535353; // Wait, old code had 0x535353 for image bg.
+        private static const COLOR_IMAGE_BG:uint = 0x111111; // Wait, old code had 0x535353 for image bg.
         // Let's rename _bgRect to _imageBgRect to avoid confusion.
 
         public function FileListItemRenderer()

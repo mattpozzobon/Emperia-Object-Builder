@@ -28,7 +28,7 @@ THE SOFTWARE.
     minWidth="550"
     minHeight="500"
     showStatusBar="false"
-    backgroundColor="0x494949"
+    backgroundColor="0x000000"
     fontSize="11"
     title="@Resource(key='error', bundle='strings')">
 

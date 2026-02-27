@@ -1660,7 +1660,7 @@ THE SOFTWARE.
                                     height="{bitmapView.height}"
                                     visible="{bitmapView.visible}">
                                     <s:fill>
-                                        <s:SolidColor color="0x636363"/>
+                                        <s:SolidColor color="0x1a1a1a"/>
                                     </s:fill>
                                 </s:Rect>
 

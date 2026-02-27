@@ -85,7 +85,7 @@ package store.renders
             // HGroup height is 100% (68). 64 is fits.
 
             _imageBgRect = new Rect();
-            _imageBgRect.fill = new SolidColor(0x636363);
+            _imageBgRect.fill = new SolidColor(0x1a1a1a);
             _imageBgRect.stroke = new SolidColorStroke(0x333333);
             addElement(_imageBgRect);
 
