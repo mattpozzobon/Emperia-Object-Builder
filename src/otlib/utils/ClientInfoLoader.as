@@ -30,6 +30,7 @@ package otlib.utils
     import flash.filesystem.File;
     import flash.filesystem.FileMode;
     import flash.filesystem.FileStream;
+    import flash.utils.ByteArray;
     import flash.utils.Endian;
 
     import nail.errors.NullArgumentError;
@@ -154,9 +155,10 @@ package otlib.utils
 
             // Step 3: Read SPR header + resolve version
             dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 3, m_total));
+            var sprFile:File = maybeDecompressGzip(m_spr);
             var sprStream:FileStream = new FileStream();
             sprStream.endian = Endian.LITTLE_ENDIAN;
-            sprStream.open(m_spr, FileMode.READ);
+            sprStream.open(sprFile, FileMode.READ);
             readSpritesInfo(sprStream);
             sprStream.close();
 
@@ -269,6 +271,63 @@ package otlib.utils
                 m_clientInfo.maxSpriteId = stream.readUnsignedShort();
         }
 
+
+        /**
+         * Detects gzip magic bytes (0x1f 0x8b) and decompresses to a temp file if needed.
+         * Returns the original file if not gzip-compressed.
+         */
+        private static function maybeDecompressGzip(file:File):File
+        {
+            var stream:FileStream = new FileStream();
+            stream.open(file, FileMode.READ);
+            stream.endian = Endian.LITTLE_ENDIAN;
+
+            if (stream.bytesAvailable < 2)
+            {
+                stream.close();
+                return file;
+            }
+
+            var b0:uint = stream.readUnsignedByte();
+            var b1:uint = stream.readUnsignedByte();
+            stream.close();
+
+            if (b0 != 0x1F || b1 != 0x8B)
+                return file;
+
+            // Read entire gzip file
+            var raw:ByteArray = new ByteArray();
+            stream = new FileStream();
+            stream.open(file, FileMode.READ);
+            stream.readBytes(raw, 0, stream.bytesAvailable);
+            stream.close();
+
+            // Parse gzip header to find DEFLATE stream
+            raw.endian = Endian.LITTLE_ENDIAN;
+            raw.position = 3;
+            var flg:uint = raw.readUnsignedByte();
+            raw.position = 10;
+
+            if (flg & 0x04) { var xlen:uint = raw.readUnsignedShort(); raw.position += xlen; }
+            if (flg & 0x08) { while (raw.readUnsignedByte() != 0) {} }
+            if (flg & 0x10) { while (raw.readUnsignedByte() != 0) {} }
+            if (flg & 0x02) { raw.position += 2; }
+
+            var deflateStart:uint = raw.position;
+            var deflateLen:uint = raw.length - deflateStart - 8;
+            var deflateData:ByteArray = new ByteArray();
+            deflateData.writeBytes(raw, deflateStart, deflateLen);
+            deflateData.position = 0;
+            deflateData.inflate();
+
+            var tmpFile:File = File.createTempFile();
+            stream = new FileStream();
+            stream.open(tmpFile, FileMode.WRITE);
+            stream.writeBytes(deflateData, 0, deflateData.length);
+            stream.close();
+
+            return tmpFile;
+        }
 
         private function createErrorEvent(text:String, id:uint = 0):ErrorEvent
         {

@@ -691,6 +691,10 @@ package otlib.sprites
                 }
 
                 stream.close();
+
+                // Gzip-compress the temp file for ~74% size reduction
+                gzipCompressFile(tmpFile);
+
                 done = true;
             }
             catch (error:Error)
@@ -941,6 +945,165 @@ package otlib.sprites
         // Private
         // --------------------------------------
 
+        /**
+         * Detects gzip magic bytes (0x1f 0x8b) and decompresses to a temp file if needed.
+         * Returns the original file if not gzip-compressed, or the temp decompressed file.
+         */
+        private function maybeDecompressGzip(file:File):File
+        {
+            var stream:FileStream = new FileStream();
+            stream.open(file, FileMode.READ);
+            stream.endian = Endian.LITTLE_ENDIAN;
+
+            if (stream.bytesAvailable < 2)
+            {
+                stream.close();
+                return file;
+            }
+
+            var b0:uint = stream.readUnsignedByte();
+            var b1:uint = stream.readUnsignedByte();
+            stream.close();
+
+            // Not gzip
+            if (b0 != 0x1F || b1 != 0x8B)
+                return file;
+
+            // Read entire gzip file into ByteArray
+            var raw:ByteArray = new ByteArray();
+            stream = new FileStream();
+            stream.open(file, FileMode.READ);
+            stream.readBytes(raw, 0, stream.bytesAvailable);
+            stream.close();
+
+            // Parse gzip header to find start of DEFLATE stream
+            raw.endian = Endian.LITTLE_ENDIAN;
+            raw.position = 3; // skip magic (2) + method (1)
+            var flg:uint = raw.readUnsignedByte();
+            raw.position = 10; // skip to end of fixed header
+
+            // FEXTRA
+            if (flg & 0x04)
+            {
+                var xlen:uint = raw.readUnsignedShort();
+                raw.position += xlen;
+            }
+            // FNAME
+            if (flg & 0x08)
+            {
+                while (raw.readUnsignedByte() != 0) {}
+            }
+            // FCOMMENT
+            if (flg & 0x10)
+            {
+                while (raw.readUnsignedByte() != 0) {}
+            }
+            // FHCRC
+            if (flg & 0x02)
+            {
+                raw.position += 2;
+            }
+
+            // Extract raw DEFLATE data (everything between header and 8-byte trailer)
+            var deflateStart:uint = raw.position;
+            var deflateLen:uint = raw.length - deflateStart - 8; // 8 = CRC32 + ISIZE
+            var deflateData:ByteArray = new ByteArray();
+            deflateData.writeBytes(raw, deflateStart, deflateLen);
+            deflateData.position = 0;
+            deflateData.inflate();
+
+            // Write decompressed data to temp file
+            var tmpFile:File = File.createTempFile();
+            stream = new FileStream();
+            stream.open(tmpFile, FileMode.WRITE);
+            stream.writeBytes(deflateData, 0, deflateData.length);
+            stream.close();
+
+            return tmpFile;
+        }
+
+        /**
+         * Gzip-compresses a file in-place using DEFLATE + gzip framing.
+         * Reads the file, deflates the data, wraps in a minimal gzip envelope, and overwrites.
+         */
+        private function gzipCompressFile(file:File):void
+        {
+            // Read uncompressed data
+            var raw:ByteArray = new ByteArray();
+            var stream:FileStream = new FileStream();
+            stream.open(file, FileMode.READ);
+            stream.readBytes(raw, 0, stream.bytesAvailable);
+            stream.close();
+
+            var uncompressedLen:uint = raw.length;
+
+            // Compute CRC32 before deflating
+            var crc:uint = crc32(raw);
+
+            // Deflate the data
+            raw.deflate();
+
+            // Build gzip file: 10-byte header + deflated data + 8-byte trailer
+            var gz:ByteArray = new ByteArray();
+            gz.endian = Endian.LITTLE_ENDIAN;
+
+            // Gzip header (10 bytes)
+            gz.writeByte(0x1F);  // magic1
+            gz.writeByte(0x8B);  // magic2
+            gz.writeByte(0x08);  // method = deflate
+            gz.writeByte(0x00);  // flags = none
+            gz.writeUnsignedInt(0); // mtime
+            gz.writeByte(0x00);  // xfl
+            gz.writeByte(0xFF);  // OS = unknown
+
+            // Compressed data
+            gz.writeBytes(raw, 0, raw.length);
+
+            // Gzip trailer (8 bytes)
+            gz.writeUnsignedInt(crc);
+            gz.writeUnsignedInt(uncompressedLen);
+
+            // Overwrite file
+            stream = new FileStream();
+            stream.open(file, FileMode.WRITE);
+            stream.writeBytes(gz, 0, gz.length);
+            stream.close();
+        }
+
+        /**
+         * Computes CRC32 checksum for gzip trailer.
+         */
+        private static function crc32(data:ByteArray):uint
+        {
+            // Build CRC table on first use
+            if (!_crc32Table)
+            {
+                _crc32Table = new Vector.<uint>(256, true);
+                for (var n:int = 0; n < 256; n++)
+                {
+                    var c:uint = n;
+                    for (var k:int = 0; k < 8; k++)
+                    {
+                        if (c & 1)
+                            c = 0xEDB88320 ^ (c >>> 1);
+                        else
+                            c = c >>> 1;
+                    }
+                    _crc32Table[n] = c;
+                }
+            }
+
+            data.position = 0;
+            var crc:uint = 0xFFFFFFFF;
+            while (data.bytesAvailable > 0)
+            {
+                crc = _crc32Table[(crc ^ data.readUnsignedByte()) & 0xFF] ^ (crc >>> 8);
+            }
+            return crc ^ 0xFFFFFFFF;
+        }
+
+        private static var _crc32Table:Vector.<uint>;
+
         private function onLoad(file:File,
                 version:Version,
                 features:ClientFeatures,
@@ -952,12 +1115,15 @@ package otlib.sprites
                 return;
             }
 
+            // Decompress gzip'd .espr to a temp file if needed
+            var actualFile:File = maybeDecompressGzip(file);
+
             _file = file;
             _version = version;
             _currentFeatures = features.clone();
             _currentFeatures.applyVersionDefaults(version.value);
             _reader = new SpriteReader(_currentFeatures);
-            _reader.open(file, FileMode.READ);
+            _reader.open(actualFile, FileMode.READ);
             _signature = _reader.readSignature();
             // Emperia files return contentVersion from readSignature(), not the legacy hex sig.
             // Normalize to legacy signature so downstream display/lookup works.
