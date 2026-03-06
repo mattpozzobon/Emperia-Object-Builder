@@ -101,16 +101,10 @@ package otlib.utils
             if (!spr.exists)
                 dispatchEvent(createErrorEvent(Resources.getString("sprFileNotFound")));
 
-            // Search for Emperia .easset manifest first, then legacy .otfi
-            var eassetResult:Vector.<File> = FileUtil.findExtension(dat, "easset");
-            if (eassetResult.length != 0)
-                m_otfi = eassetResult[0];
-            else
-            {
-                var result:Vector.<File> = FileUtil.findExtension(dat, "otfi");
-                if (result.length != 0)
-                    m_otfi = result[0];
-            }
+            // Search for legacy .otfi manifest (Emperia features come from the binary headers)
+            var result:Vector.<File> = FileUtil.findExtension(dat, "otfi");
+            if (result.length != 0)
+                m_otfi = result[0];
 
             m_dat = dat;
             m_spr = spr;
@@ -128,7 +122,7 @@ package otlib.utils
 
         private function doLoad():void
         {
-            // Step 1: Load OTFI/easset manifest
+            // Step 1: Load OTFI manifest (if present)
             dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, false, 1, m_total));
             if (m_otfi)
             {
@@ -215,6 +209,10 @@ package otlib.utils
                 m_clientInfo.features.transparency = (sprFlags & 0x02) != 0;
                 m_clientInfo.features.frameGroups = (sprFlags & 0x04) != 0;
                 m_clientInfo.features.improvedAnimations = (sprFlags & 0x08) != 0;
+
+                // Emperia assets always use 32px sprites / 4096 data size
+                m_clientInfo.spriteSize = 32;
+                m_clientInfo.spriteDataSize = 4096;
 
                 stream.position = 0x0B;
                 sprContentVersion = stream.readUnsignedInt();

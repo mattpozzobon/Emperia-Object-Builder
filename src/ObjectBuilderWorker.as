@@ -719,31 +719,6 @@ package
                 }
             }
 
-            // Save .easset manifest (Emperia format) alongside the compiled files
-            var dir:File = FileUtil.getDirectory(dat);
-            var eassetFile:File = dir.resolvePath("emperia.easset");
-            var manifest:Object = {
-                "format": "emperia-asset-manifest",
-                "version": 1,
-                "contentVersion": version.value,
-                "files": {
-                    "objects": dat.name,
-                    "sprites": spr.name
-                },
-                "features": {
-                    "extended": features.extended,
-                    "transparency": features.transparency,
-                    "frameDurations": features.improvedAnimations,
-                    "frameGroups": features.frameGroups,
-                    "spriteSize": SpriteExtent.DEFAULT_SIZE,
-                    "spriteDataSize": SpriteExtent.DEFAULT_DATA_SIZE
-                }
-            };
-            var eassetStream:FileStream = new FileStream();
-            eassetStream.open(eassetFile, FileMode.WRITE);
-            eassetStream.writeUTFBytes(JSON.stringify(manifest, null, 2));
-            eassetStream.close();
-
             // Complete
             sendCommand(new ProgressCommand(ProgressBarID.METADATA, 3, 3, "Saving complete"));
 
