@@ -29,7 +29,7 @@
     </category>
     <category name="Equipment">
         <attribute key="slotType" type="string"
-            values="head,body,legs,feet,backpack,two-handed,right-hand,left-hand,necklace,ring,ammo,hand" />
+            values="head,body,legs,feet,backpack,two-handed,right-hand,left-hand,necklace,ring,ammo,hand,machete" />
         <attribute key="weaponType" type="string"
             values="sword,club,axe,shield,distance,wand,ammunition" />
         <attribute key="ammoType" type="string"
